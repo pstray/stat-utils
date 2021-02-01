@@ -252,6 +252,19 @@ for my $n (0 .. @data-1) {
 	     );
 }
 
+my $legend_box_size = $opt_font_size + 2; # *$opt_stroke_width;
+my $legend_factor = 1.7;
+my $legend_padding = int($legend_box_size + 0.5);
+my $legend_lh = int($legend_box_size*$legend_factor + 0.5);
+my $legend_offset = $legend_padding - ($legend_lh - $legend_box_size);
+
+my $legend_height = $legend_offset + @data * $legend_lh + $legend_padding;
+my $legend_width  = 2*$legend_padding + $legend_lh + $opt_avg_aspect * $opt_font_size * ( sort { $b <=> $a } map { length $_->[$opt_col_label] } @data)[0];
+
+my $legend_margin = 20;
+my $legend_x = $opt_width+$legend_margin;
+my $legend_y = $legend_margin; # int( ($opt_height - $legend_height)/2 );
+
 push @pie,
   sprintf(qq{<g id="segments" class="pie-chart" transform="translate(%d,%d) scale(1,-1)">},
 	  $graph_width/2, $graph_height/2,
@@ -263,18 +276,6 @@ push @pie,
 	  $max_rx, $max_ry, -$max_ry,
 	  $max_rx, $max_ry,  $max_ry,
 	 );
-
-my $legend_box_size = $opt_font_size + 2*$opt_stroke_width;
-my $legend_factorg = 1.7;
-my $legend_margin = int($legend_box_size + 0.5);
-my $legend_lh = int($legend_box_size*$legend_factorg + 0.5);
-my $legend_offset = $legend_margin - ($legend_lh - $legend_box_size);
-
-my $legend_height = $legend_offset + @data * $legend_lh + $legend_margin;
-my $legend_width  = 2*$legend_margin + $legend_lh + $opt_font_size * ( sort { $b <=> $a } map { length $_->[$opt_col_label] } @data)[0];
-
-my $legend_x = $opt_width+20;
-my $legend_y = 20; # int( ($opt_height - $legend_height)/2 );
 
 $n = 0;
 for my $s (@data) {
