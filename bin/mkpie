@@ -57,6 +57,7 @@ GetOptions('s|sort-value' => sub { $opt_sort = SORT_VALUE },
 	   't|title=s' => \$opt_title,
 	   'e|eject-max' => \$opt_eject_max,
 	   'p|percent' => \$opt_percent,
+	   'sw=i' => \$opt_stroke_width,
 	   'value!' => \$opt_show_value,
 	   'h|help+' => \$opt_help,
 	  )
