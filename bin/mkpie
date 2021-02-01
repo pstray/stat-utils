@@ -167,7 +167,7 @@ text {
 text.legend {
 }
 text.value {
-  font-size: 70%;
+  font-size: 80%;
 }
 #legend-rect {
   stroke-width: 1;
@@ -286,12 +286,12 @@ for my $s (@data) {
     push(@legend,
 	 sprintf(qq{<rect id="legend-area%d" class="legend-box series%d" transform="scale(1,-1)" x="%.2f" y="%.2f" width="%d" height="%s" />},
 		 $n, $n,
-		 $legend_margin, -($legend_offset + $n*$legend_lh),
+		 $legend_padding, -($legend_offset + $n*$legend_lh),
 		 $legend_box_size, $legend_box_size,
 		),
 	 sprintf(qq{<text id="legend-text%d" class="legend" x="%.2f" y="%.2f">%s</text>},
 		 $n,
-		 $legend_margin*2 + ($legend_lh - $legend_box_size), $legend_offset + $n*$legend_lh - $opt_stroke_width,
+		 $legend_padding*2 + ($legend_lh - $legend_box_size), $legend_offset + $n*$legend_lh - 1, #$opt_stroke_width,
 		 $label),
 	);
 
