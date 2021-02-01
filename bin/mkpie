@@ -43,6 +43,8 @@ my $opt_legend = 1;
 my $opt_percent = 0;
 my $opt_show_value = 1;
 my $opt_split_limit;
+my $opt_combine_max;
+my $opt_combine_label = '%d Others';
 
 GetOptions('s|sort-value' => sub { $opt_sort = SORT_VALUE },
 	   'sort-label' => sub { $opt_sort = SORT_LABEL },
@@ -61,6 +63,8 @@ GetOptions('s|sort-value' => sub { $opt_sort = SORT_VALUE },
 	   'sw=i' => \$opt_stroke_width,
 	   'value!' => \$opt_show_value,
 	   'sl|split-limit=i' => \$opt_split_limit,
+	   'cm|combine-max=s' => \$opt_combine_max,
+	   'cl|combine-label=s' => \$opt_combine_label,
 	   'h|help+' => \$opt_help,
 	  )
   or pod2usage(2);
@@ -126,6 +130,16 @@ elsif ($opt_sort == SORT_LABEL) {
     @data =
       sort { -$opt_sort_dir * ( $a->[$opt_col_label] cmp $b->[$opt_col_label] ) }
       @data;
+}
+
+if ($opt_combine_max && $opt_combine_max+1 < @data) {
+    my @rest = splice @data, $opt_combine_max;
+    my $c = [];
+    $c->[$opt_col_label] = sprintf $opt_combine_label, 0+@rest;
+    for my $d (@rest) {
+	$c->[$opt_col_data] += $d->[$opt_col_data];
+    }
+    push @data, $c;
 }
 
 my $graph_width = $opt_width;
