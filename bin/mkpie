@@ -43,6 +43,7 @@ my $opt_legend = 1;
 my $opt_percent = 0;
 my $opt_show_value = 1;
 my $opt_split_limit;
+my $opt_avg_aspect = 0.7;
 my $opt_combine_max;
 my $opt_combine_label = '%d Others';
 
@@ -63,6 +64,7 @@ GetOptions('s|sort-value' => sub { $opt_sort = SORT_VALUE },
 	   'sw=i' => \$opt_stroke_width,
 	   'value!' => \$opt_show_value,
 	   'sl|split-limit=i' => \$opt_split_limit,
+	   'aa|avg-aspect=s' => \$opt_avg_aspect,
 	   'cm|combine-max=s' => \$opt_combine_max,
 	   'cl|combine-label=s' => \$opt_combine_label,
 	   'h|help+' => \$opt_help,
@@ -265,9 +267,20 @@ my $legend_margin = 20;
 my $legend_x = $opt_width+$legend_margin;
 my $legend_y = $legend_margin; # int( ($opt_height - $legend_height)/2 );
 
+my $pie_offset_x = 0;
+my $pie_offset_y = 0;
+
+if ($opt_legend) {
+    $width += $legend_margin * 2 + $legend_width;
+    my $oh = $height;
+    ($height) = sort { $b <=> $a } $height, $legend_height + $legend_margin * 2;
+    $pie_offset_y = ($height-$oh)/2 if $oh < $height;
+}
+
 push @pie,
   sprintf(qq{<g id="segments" class="pie-chart" transform="translate(%d,%d) scale(1,-1)">},
-	  $graph_width/2, $graph_height/2,
+	  $pie_offset_x + $graph_width/2,
+	  $pie_offset_y + $graph_height/2,
 	 );
 
 0 && push @pie,
@@ -365,7 +378,6 @@ if ($opt_output) {
 }
 
 if ($opt_legend) {
-    $width = $legend_x + $legend_width;
     @legend =
       (
        sprintf(qq{<g id="legend" transform="translate(%g,%g)">},
