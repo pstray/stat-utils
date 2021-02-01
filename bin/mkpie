@@ -156,7 +156,7 @@ push @style, qq{
   fill: #fff;
 }
 .legend-box {
-  stroke-width: ${opt_stroke_width};
+  stroke-width: 1;
   stroke: #000;
   fill: #fff;
 }
