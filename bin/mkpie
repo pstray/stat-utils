@@ -320,6 +320,11 @@ for my $s (@data) {
 	$label = "$label ($value)";
     }
 
+    if ($opt_percent) {
+	printf "percentifying...\n";
+	$value = sprintf "%d%%", $value/$data_sum * 100;
+    }
+
     push(@legend,
 	 sprintf(qq{<rect id="legend-area%d" class="legend-box series%d" transform="scale(1,-1)" x="%.2f" y="%.2f" width="%d" height="%s" />},
 		 $n, $n,
@@ -357,10 +362,6 @@ for my $s (@data) {
     my $ly = 0.9 * $yc; # - $opt_font_size/2;
 
     if ($opt_show_value) {
-	if ($opt_percent) {
-	    printf "percentifying...\n";
-	    $value = sprintf "%d%%", $value/$data_sum * 100;
-	}
 
 	push @pie,
 	  sprintf(qq{  %s<text class="value" dominant-baseline="middle" text-anchor="middle" transform="scale(1,-1)" x="%g" y="%g">%s</text>},
