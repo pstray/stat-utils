@@ -42,6 +42,7 @@ my $opt_stroke_width = 1;
 my $opt_legend = 1;
 my $opt_percent = 0;
 my $opt_show_value = 1;
+my $opt_split_limit;
 
 GetOptions('s|sort-value' => sub { $opt_sort = SORT_VALUE },
 	   'sort-label' => sub { $opt_sort = SORT_LABEL },
@@ -59,6 +60,7 @@ GetOptions('s|sort-value' => sub { $opt_sort = SORT_VALUE },
 	   'p|percent' => \$opt_percent,
 	   'sw=i' => \$opt_stroke_width,
 	   'value!' => \$opt_show_value,
+	   'sl|split-limit=i' => \$opt_split_limit,
 	   'h|help+' => \$opt_help,
 	  )
   or pod2usage(2);
@@ -101,7 +103,7 @@ my @data;
 if (@ARGV) {
     while (<>) {
 	chomp;
-	push @data, [ split " " ];
+	push @data, [ split " ", $_, $opt_split_limit ];
     }
 }
 
