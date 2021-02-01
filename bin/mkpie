@@ -1,0 +1,392 @@
+#! /usr/bin/perl
+
+use strict;
+use open 'locale';
+
+use Getopt::Long qw(:config bundling);
+
+use Data::Dumper;
+$Data::Dumper::Indent = $Data::Dumper::Sortkeys = 1;
+
+use constant
+  {
+   SORT_NONE  => 0,
+   SORT_VALUE => 1,
+   SORT_LABEL => 2,
+
+   SORT_DESC => -1,
+   SORT_ASC  =>  1,
+
+   DRAW_CW  => -1,
+   DRAW_CCW => +1,
+
+   PI => 4*atan2(1,1),
+
+  };
+
+my $opt_sort      = SORT_NONE;
+my $opt_help      = 0;
+my $opt_sort_dir  = SORT_DESC;
+my $opt_col_data;
+my $opt_col_label;
+my $opt_draw_dir  = DRAW_CW;
+my $opt_start_angle = 0;
+my $opt_width;
+my $opt_height;
+my $opt_output;
+my $opt_title;
+my $opt_font_family = 'Roboto, Sans-Serif';
+my $opt_font_size = 10;
+my $opt_eject_max = 0;
+my $opt_stroke_width = 1;
+my $opt_legend = 1;
+my $opt_percent = 0;
+
+GetOptions('s|sort-value' => sub { $opt_sort = SORT_VALUE },
+	   'sort-label' => sub { $opt_sort = SORT_LABEL },
+	   'r|sort-reverse' => sub { $opt_sort_dir = -$opt_sort_dir },
+	   'd|data-col=i' => \$opt_col_data,
+	   'l|label-col=i' => \$opt_col_label,
+	   'u|using=s' => sub { ($opt_col_label,$opt_col_data) = split ":", $_[1] },
+	   'c|counter-clockwise' => sub { $opt_draw_dir = DRAW_CCW },
+	   'a|start-angle=i' => \$opt_start_angle,
+	   'w|width=i' => \$opt_width,
+	   'h|height=i' => \$opt_height,
+	   'o|output=s' => \$opt_output,
+	   't|title=s' => \$opt_title,
+	   'e|eject-max' => \$opt_eject_max,
+	   'p|percent' => \$opt_percent,
+	   'h|help+' => \$opt_help,
+	  )
+  or pod2usage(2);
+
+pod2usage(-verbose => $opt_help,
+	  -exitval => 0,
+	 )
+  if $opt_help;
+
+$opt_col_label //= 1;
+$opt_col_data //= 2;
+
+for ($opt_col_label, $opt_col_data) {
+    $_--;
+}
+
+# printf STDERR "using %d:%d\n", $opt_col_label, $opt_col_data;
+
+unless ($opt_width && $opt_height) {
+    if ($opt_width) {
+	$opt_height = $opt_width;
+    }
+    elsif ($opt_height) {
+	$opt_width = $opt_width;
+    }
+    else {
+	$opt_width  = 300;
+	$opt_height = 300;
+    }
+}
+
+# make sure angle is sane and convert to rads
+$opt_start_angle = $opt_start_angle % 360;
+$opt_start_angle = 2 * PI * $opt_start_angle / 360;
+
+# end options
+
+my @data;
+
+if (@ARGV) {
+    while (<>) {
+	chomp;
+	push @data, [ split " " ];
+    }
+}
+
+unless (@data) {
+    @data =(
+	    [ 'A', 80 ],
+	    [ 'B', 20 ],
+	    [ 'C', 45 ],
+	    [ 'E', 60 ],
+	    [ 'D', 20 ],
+	   );
+}
+
+if ($opt_sort == SORT_VALUE) {
+    @data =
+      sort { $opt_sort_dir * ( $a->[$opt_col_data] <=> $b->[$opt_col_data] ) }
+      @data;
+}
+elsif ($opt_sort == SORT_LABEL) {
+    @data =
+      sort { -$opt_sort_dir * ( $a->[$opt_col_label] cmp $b->[$opt_col_label] ) }
+      @data;
+}
+
+my $graph_width = $opt_width;
+my $graph_height = $opt_height;
+
+my $width = $graph_width;
+my $height = $graph_height;
+
+my $data_sum = 0;
+for my $d (@data) {
+    $data_sum += $d->[$opt_col_data];
+}
+
+my $n = 0;
+my $angle = PI/2 + $opt_draw_dir * $opt_start_angle;
+
+my $max_rx = $graph_width/2  - $opt_stroke_width/2;
+my $max_ry = $graph_height/2 - $opt_stroke_width/2;
+
+my $rx = $max_rx * 0.8;
+my $ry = $max_ry * 0.8;
+
+my($max_val) = sort { $b <=> $a } map { $_->[$opt_col_data] } @data;
+
+my(@style, @pie, @legend);
+
+push @style, qq{
+.segment {
+  stroke-width: ${opt_stroke_width};
+  stroke: #000;
+  fill: #fff;
+}
+.legend-box {
+  stroke-width: ${opt_stroke_width};
+  stroke: #000;
+  fill: #fff;
+}
+text {
+  font-family: ${opt_font_family};
+  font-size: ${opt_font_size}pt;
+}
+text.legend {
+}
+text.value {
+  font-size: 70%;
+}
+#legend-rect {
+  stroke-width: 1;
+  fill: #f0f0f0;
+}
+};
+
+my @colors;
+my $cnum = 0;
+while (<DATA>) {
+    while (m/#([[:xdigit:]]{2})([[:xdigit:]]{2})([[:xdigit:]]{2})/g) {
+	push @colors, { r => hex($1), g => hex($2), b => hex($3), _n => $cnum++, _d => 1 };
+    }
+}
+
+# my $inc = 1;
+# while (@colors < @data) {
+#     push @colors, map { my $x = { %$_ }; $x->{_d} += $inc; $x } @colors;
+#     $inc *= 2;
+# }
+
+my $n = 0;
+while (@colors < @data) {
+    my %c = %{$colors[$n++]};
+    $c{_d} *= 2;
+    push @colors, \%c;
+}
+
+# printf "Color:\n";
+# for my $c (@colors) {
+#     printf "n: %d  d: %d  r: %3d  g: %3d  b: %3d\n",
+#       map { $c->{$_} } qw(_n _d r g b);
+# }
+# printf "\n";
+
+@colors = sort { $a->{_d} <=> $b->{_d} || $a->{_n} <=> $b->{_n} } @colors;
+my $max_d = $colors[-1]{_d};
+
+for my $color (@colors) {
+    $color->{_d}--;
+    for my $c (qw(r g b)) {
+	$color->{$c} = (255          * (         $color->{_d}) +
+			$color->{$c} * ($max_d - $color->{_d})) / $max_d;
+    }
+}
+
+# printf "Color:\n";
+# for my $c (@colors) {
+#     printf "n: %d  d: %d  r: %3d  g: %3d  b: %3d\n",
+#       map { $c->{$_} } qw(_n _d r g b);
+# }
+# printf "\n";
+
+for my $n (0 .. @data-1) {
+    push @style,
+      sprintf(qq{
+.series%d {
+  fill: #%02x%02x%02x;
+}
+},
+	      $n+1,
+	      $colors[$n]{r},
+	      $colors[$n]{g},
+	      $colors[$n]{b},
+	     );
+}
+
+push @pie,
+  sprintf(qq{<g id="segments" class="pie-chart" transform="translate(%d,%d) scale(1,-1)">},
+	  $graph_width/2, $graph_height/2,
+	 );
+
+0 && push @pie,
+  sprintf(qq{  <path d="M 0,%.2f A %.2f,%.2f 0 1,0 0,%.2f A %.2f,%.2f 0 0,0 0,%.2f Z" fill="#0f0"/>},
+	  $max_ry,
+	  $max_rx, $max_ry, -$max_ry,
+	  $max_rx, $max_ry,  $max_ry,
+	 );
+
+my $legend_box_size = $opt_font_size + 2*$opt_stroke_width;
+my $legend_factorg = 1.7;
+my $legend_margin = int($legend_box_size + 0.5);
+my $legend_lh = int($legend_box_size*$legend_factorg + 0.5);
+my $legend_offset = $legend_margin - ($legend_lh - $legend_box_size);
+
+my $legend_height = $legend_offset + @data * $legend_lh + $legend_margin;
+my $legend_width  = 2*$legend_margin + $legend_lh + $opt_font_size * ( sort { $b <=> $a } map { length $_->[$opt_col_label] } @data)[0];
+
+my $legend_x = $opt_width+20;
+my $legend_y = 20; # int( ($opt_height - $legend_height)/2 );
+
+$n = 0;
+for my $s (@data) {
+    $n++;
+
+    my $value = $s->[$opt_col_data];
+    my $label = $s->[$opt_col_label];
+
+    my $aw = PI * $value / $data_sum;
+
+    my $x1 = $rx * cos($angle);
+    my $y1 = $ry * sin($angle);
+
+    my $ac = $angle += $opt_draw_dir * $aw;
+
+    my $xc = $max_rx * cos($angle);
+    my $yc = $max_ry * sin($angle);
+
+    $angle += $opt_draw_dir * $aw;
+
+    my $x2 = $rx * cos($angle);
+    my $y2 = $ry * sin($angle);
+
+    my $eject = $opt_eject_max && $value == $max_val;
+
+    push(@legend,
+	 sprintf(qq{<rect id="legend-area%d" class="legend-box series%d" transform="scale(1,-1)" x="%.2f" y="%.2f" width="%d" height="%s" />},
+		 $n, $n,
+		 $legend_margin, -($legend_offset + $n*$legend_lh),
+		 $legend_box_size, $legend_box_size,
+		),
+	 sprintf(qq{<text id="legend-text%d" class="legend" x="%.2f" y="%.2f">%s</text>},
+		 $n,
+		 $legend_margin*2 + ($legend_lh - $legend_box_size), $legend_offset + $n*$legend_lh - $opt_stroke_width,
+		 $label),
+	);
+
+    if ($eject) {
+	push @pie, sprintf(qq{  <g class="eject" transform="translate(%.2f,%.2f)">},
+			   0.05 * $xc, 0.05 * $yc,
+			  );
+    }
+    push @pie,
+      sprintf(qq{  %s<path id="segment%d" class="segment series%d" d="%s"/>},
+	      $eject ? "  " : "",
+	      $n, $n,
+	      sprintf("M 0,0 ".
+		      "L %.2f,%.2f ".
+		      "A %.2f,%.2f 0 %d,%d %.2f,%.2f ".
+		      "Z",
+		      $x1, $y1,
+		      $rx, $ry,
+		      $aw*2 > PI,
+		      $opt_draw_dir == DRAW_CCW,
+		      $x2, $y2,
+		     ),
+	     );
+
+    my $lx = 0.9 * $xc; # - $opt_font_size/2 * length($label);
+    my $ly = 0.9 * $yc; # - $opt_font_size/2;
+
+    if ($opt_percent) {
+	printf "percentifying...\n";
+	$value = sprintf "%d%%", $value/$data_sum * 100;
+    }
+
+    push @pie,
+      sprintf(qq{  %s<text class="value" dominant-baseline="middle" text-anchor="middle" transform="scale(1,-1)" x="%g" y="%g">%s</text>},
+	      $eject ? "  " : "",
+	      $lx, -$ly,
+	      "$value",
+	     );
+    if ($eject) {
+	push @pie, qq{  </g>};
+    }
+}
+push @pie, qq{</g>};
+
+## print it;
+
+if ($opt_output) {
+    open OUTPUT, ">:utf8", $opt_output;
+    select OUTPUT;
+}
+
+if ($opt_legend) {
+    $width = $legend_x + $legend_width;
+    @legend =
+      (
+       sprintf(qq{<g id="legend" transform="translate(%g,%g)">},
+	       $legend_x, $legend_y,
+	      ),
+       map({ "  $_" }
+	   sprintf(qq{<rect id="legend-rect" x="0" y="0" width="%d" height="%d" />},
+		   $legend_width, $legend_height,
+		  ),
+	   @legend,
+	  ),
+       qq{</g>},
+      );
+}
+
+
+
+print  qq{<?xml version="1.0" encoding="UTF-8"?>\n};
+print  qq{<svg xmlns="http://www.w3.org/2000/svg"\n};
+print  qq{     xmlns:xlink="http://www.w3.org/1999/xlink"\n};
+print  qq{     version="1.1"\n};
+print  qq{     font-family="$opt_font_family"\n};
+printf qq{     width="%s" height="%s" >\n}, $width, $height;
+
+if ($opt_title) {
+    printf qq{  <title>%s</title>\n}, $opt_title;
+}
+
+if (@style) {
+    printf qq{  <style type="text/css">\n};
+    for (grep { /\S/ } map { split /\n/ } @style) {
+	printf qq{    %s\n}, $_;
+    }
+    printf qq{  </style>\n};
+}
+
+print map { "  $_\n" } @pie, @legend;
+
+print  qq{</svg>\n};
+
+__DATA__
+#ffe000
+#00ffe0
+#e000ff
+#001fff
+#ff001f
+#1fff00
