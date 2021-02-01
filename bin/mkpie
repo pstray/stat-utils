@@ -42,6 +42,7 @@ my $opt_stroke_width = 1;
 my $opt_legend = 1;
 my $opt_percent = 0;
 my $opt_show_value = 1;
+my $opt_value_in_legend = 0;
 my $opt_split_limit;
 my $opt_avg_aspect = 0.7;
 my $opt_combine_max;
@@ -67,6 +68,7 @@ GetOptions('s|sort-value' => sub { $opt_sort = SORT_VALUE },
 	   'aa|avg-aspect=s' => \$opt_avg_aspect,
 	   'cm|combine-max=s' => \$opt_combine_max,
 	   'cl|combine-label=s' => \$opt_combine_label,
+	   'vl|value-in-legend!' => \$opt_value_in_legend,
 	   'h|help+' => \$opt_help,
 	  )
   or pod2usage(2);
@@ -313,6 +315,10 @@ for my $s (@data) {
     my $y2 = $ry * sin($angle);
 
     my $eject = $opt_eject_max && $value == $max_val;
+
+    if ($opt_value_in_legend) {
+	$label = "$label ($value)";
+    }
 
     push(@legend,
 	 sprintf(qq{<rect id="legend-area%d" class="legend-box series%d" transform="scale(1,-1)" x="%.2f" y="%.2f" width="%d" height="%s" />},
