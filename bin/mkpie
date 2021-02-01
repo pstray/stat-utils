@@ -41,6 +41,7 @@ my $opt_eject_max = 0;
 my $opt_stroke_width = 1;
 my $opt_legend = 1;
 my $opt_percent = 0;
+my $opt_show_value = 1;
 
 GetOptions('s|sort-value' => sub { $opt_sort = SORT_VALUE },
 	   'sort-label' => sub { $opt_sort = SORT_LABEL },
@@ -56,6 +57,7 @@ GetOptions('s|sort-value' => sub { $opt_sort = SORT_VALUE },
 	   't|title=s' => \$opt_title,
 	   'e|eject-max' => \$opt_eject_max,
 	   'p|percent' => \$opt_percent,
+	   'value!' => \$opt_show_value,
 	   'h|help+' => \$opt_help,
 	  )
   or pod2usage(2);
@@ -317,17 +319,20 @@ for my $s (@data) {
     my $lx = 0.9 * $xc; # - $opt_font_size/2 * length($label);
     my $ly = 0.9 * $yc; # - $opt_font_size/2;
 
-    if ($opt_percent) {
-	printf "percentifying...\n";
-	$value = sprintf "%d%%", $value/$data_sum * 100;
+    if ($opt_show_value) {
+	if ($opt_percent) {
+	    printf "percentifying...\n";
+	    $value = sprintf "%d%%", $value/$data_sum * 100;
+	}
+
+	push @pie,
+	  sprintf(qq{  %s<text class="value" dominant-baseline="middle" text-anchor="middle" transform="scale(1,-1)" x="%g" y="%g">%s</text>},
+		  $eject ? "  " : "",
+		  $lx, -$ly,
+		  "$value",
+		 );
     }
 
-    push @pie,
-      sprintf(qq{  %s<text class="value" dominant-baseline="middle" text-anchor="middle" transform="scale(1,-1)" x="%g" y="%g">%s</text>},
-	      $eject ? "  " : "",
-	      $lx, -$ly,
-	      "$value",
-	     );
     if ($eject) {
 	push @pie, qq{  </g>};
     }
