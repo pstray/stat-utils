@@ -451,9 +451,24 @@ print map { "  $_\n" } @pie, @legend;
 print  qq{</svg>\n};
 
 __DATA__
-#ffe000
-#00ffe0
-#e000ff
-#001fff
-#ff001f
-#1fff00
+#55b7f0
+#7dce73
+#ffc000
+#e26663
+#009ca8
+#a60056
+#615ea3
+#bbe2f9
+#cbebc7
+#ffe599
+#f3c1c0
+#99d7dc
+#db99bb
+#bfbeda
+#77c5f3
+#97d78f
+#ffcc33
+#e78482
+#33afb9
+#b73377
+#807eb5
