@@ -47,6 +47,7 @@ my $opt_split_limit;
 my $opt_avg_aspect = 0.7;
 my $opt_combine_max;
 my $opt_combine_label = '%d Others';
+my $opt_donut = 0;
 
 GetOptions('s|sort-value' => sub { $opt_sort = SORT_VALUE },
 	   'sort-label' => sub { $opt_sort = SORT_LABEL },
@@ -69,6 +70,7 @@ GetOptions('s|sort-value' => sub { $opt_sort = SORT_VALUE },
 	   'cm|combine-max=s' => \$opt_combine_max,
 	   'cl|combine-label=s' => \$opt_combine_label,
 	   'vl|value-in-legend!' => \$opt_value_in_legend,
+	   'dn|donut!' => \$opt_donut,
 	   'h|help+' => \$opt_help,
 	  )
   or pod2usage(2);
@@ -165,6 +167,9 @@ my $max_ry = $graph_height/2 - $opt_stroke_width/2;
 
 my $rx = $max_rx * 0.8;
 my $ry = $max_ry * 0.8;
+
+my $drx = $max_rx * 0.3;
+my $dry = $max_ry * 0.3;
 
 my($max_val) = sort { $b <=> $a } map { $_->[$opt_col_data] } @data;
 
@@ -304,6 +309,9 @@ for my $s (@data) {
     my $x1 = $rx * cos($angle);
     my $y1 = $ry * sin($angle);
 
+    my $dx1 = $drx * cos($angle);
+    my $dy1 = $dry * sin($angle);
+
     my $ac = $angle += $opt_draw_dir * $aw;
 
     my $xc = $max_rx * cos($angle);
@@ -313,6 +321,9 @@ for my $s (@data) {
 
     my $x2 = $rx * cos($angle);
     my $y2 = $ry * sin($angle);
+
+    my $dx2 = $drx * cos($angle);
+    my $dy2 = $dry * sin($angle);
 
     my $eject = $opt_eject_max && $value == $max_val;
 
@@ -342,20 +353,34 @@ for my $s (@data) {
 			   0.05 * $xc, 0.05 * $yc,
 			  );
     }
+    my @path = "";
+
+    if ($opt_donut) {
+	push @path, sprintf("M %.2f,%2f", $dx2, $dy2);
+	push @path, sprintf("A %.2f,%.2f 0 %d,%d %.2f,%.2f",
+			    $drx, $dry,
+			    $aw*2 > PI,
+			    $opt_draw_dir != DRAW_CCW,
+			    $dx1, $dy1,
+			   );
+    }
+    else {
+	push @path, sprintf("M 0,0");
+    }
+    push @path, sprintf("L %.2f,%.2f", $x1, $y1);
+    push @path, sprintf("A %.2f,%.2f 0 %d,%d %.2f,%.2f",
+			$rx, $ry,
+			$aw*2 > PI,
+			$opt_draw_dir == DRAW_CCW,
+			$x2, $y2,
+		       );
+    push @path, "Z";
+
     push @pie,
       sprintf(qq{  %s<path id="segment%d" class="segment series%d" d="%s"/>},
 	      $eject ? "  " : "",
 	      $n, $n,
-	      sprintf("M 0,0 ".
-		      "L %.2f,%.2f ".
-		      "A %.2f,%.2f 0 %d,%d %.2f,%.2f ".
-		      "Z",
-		      $x1, $y1,
-		      $rx, $ry,
-		      $aw*2 > PI,
-		      $opt_draw_dir == DRAW_CCW,
-		      $x2, $y2,
-		     ),
+	      join(" ", @path),
 	     );
 
     my $lx = 0.9 * $xc; # - $opt_font_size/2 * length($label);
