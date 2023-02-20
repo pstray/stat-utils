@@ -138,8 +138,8 @@ elsif ($opt_sort == SORT_LABEL) {
       @data;
 }
 
-if ($opt_combine_max && $opt_combine_max+1 < @data) {
-    my @rest = splice @data, $opt_combine_max;
+if ($opt_combine_max && $opt_combine_max < @data) {
+    my @rest = splice @data, $opt_combine_max-1;
     my $c = [];
     $c->[$opt_col_label] = sprintf $opt_combine_label, 0+@rest;
     for my $d (@rest) {
