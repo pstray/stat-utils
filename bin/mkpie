@@ -268,7 +268,7 @@ my $legend_lh = int($legend_box_size*$legend_factor + 0.5);
 my $legend_offset = $legend_padding - ($legend_lh - $legend_box_size);
 
 my $legend_height = $legend_offset + @data * $legend_lh + $legend_padding;
-my $legend_width  = 2*$legend_padding + $legend_lh + $opt_avg_aspect * $opt_font_size * ( sort { $b <=> $a } map { length $_->[$opt_col_label] } @data)[0];
+my $legend_width  = 3*$legend_padding + $legend_lh + $opt_avg_aspect * $opt_font_size * ( sort { $b <=> $a } map { length $_->[$opt_col_label] } @data)[0];
 
 my $legend_margin = 20;
 my $legend_x = $opt_width+$legend_margin;
