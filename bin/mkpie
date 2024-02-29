@@ -175,8 +175,8 @@ for my $d (@data) {
 my $n = 0;
 my $angle = PI/2 + $opt_draw_dir * $opt_start_angle;
 
-my $max_rx = $graph_width/2  - $opt_stroke_width/2;
-my $max_ry = $graph_height/2 - $opt_stroke_width/2;
+my $max_rx = $graph_width/2;
+my $max_ry = $graph_height/2;
 
 my $rx = $max_rx * 0.8;
 my $ry = $max_ry * 0.8;
@@ -188,6 +188,8 @@ my($max_val) = sort { $b <=> $a } map { $_->{data}[$opt_col_data] } @data;
 
 my(@style, @pie, @legend);
 
+$opt_stroke_width *= 2; # Since we use inner clipping
+
 push @style, qq{
 .segment {
   stroke-width: ${opt_stroke_width};
@@ -195,7 +197,7 @@ push @style, qq{
   fill: #fff;
 }
 .legend-box {
-  stroke-width: 1;
+  stroke-width: 1 !important;
   stroke: #000;
   fill: #fff;
 }
@@ -290,7 +292,7 @@ for my $n (0 .. @data-1) {
 	     );
 }
 
-my $legend_box_size = $opt_font_size + 2; # *$opt_stroke_width;
+my $legend_box_size = $opt_font_size + 2; #(2 = box_stroke_width)
 my $legend_factor = 1.7;
 my $legend_padding = int($legend_box_size + 0.5);
 my $legend_lh = int($legend_box_size*$legend_factor + 0.5);
