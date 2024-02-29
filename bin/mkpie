@@ -186,7 +186,7 @@ my $dry = $max_ry * 0.3;
 
 my($max_val) = sort { $b <=> $a } map { $_->{data}[$opt_col_data] } @data;
 
-my(@style, @pie, @legend);
+my(@style, @pie, @legend, @defs);
 
 $opt_stroke_width *= 2; # Since we use inner clipping
 
@@ -420,11 +420,20 @@ for my $s (@data) {
 		       );
     push @path, "Z";
 
-    push @pie,
-      sprintf(qq{  %s<path id="segment%d" class="segment series%d" d="%s"/>},
-	      $eject ? "  " : "",
-	      $n, $n,
+    push @defs,
+      sprintf(qq{  <path id="segment%d" d="%s"/>},
+	      $n,
 	      join(" ", @path),
+	     );
+    push @defs,
+      sprintf(qq{  <clipPath id="clippath%d"><use xlink:href="#segment%d"/></clipPath>},
+	      $n, $n,
+	     );
+    push @pie,
+      sprintf(qq{  %s<use xlink:href="#segment%d" class="segment %s" clip-path="url(#clippath%d)"/>},
+	      $eject ? "  " : "",
+	      $n, $class,
+	      $n,
 	     );
 
     my $lx = 0.9 * $xc; # - $opt_font_size/2 * length($label);
@@ -489,6 +498,10 @@ if (@style) {
     }
     printf qq{  </style>\n};
 }
+
+printf qq{  <defs>\n};
+print map { "  $_\n" } @defs;
+printf qq{  </defs>\n};
 
 print map { "  $_\n" } @pie, @legend;
 
