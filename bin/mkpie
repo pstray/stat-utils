@@ -328,6 +328,7 @@ push @pie,
 	  $pie_offset_y + $graph_height/2,
 	 );
 
+# background circle
 0 && push @pie,
   sprintf(qq{  <path d="M 0,%.2f A %.2f,%.2f 0 1,0 0,%.2f A %.2f,%.2f 0 0,0 0,%.2f Z" fill="#0f0"/>},
 	  $max_ry,
