@@ -113,37 +113,38 @@ my @data;
 if (@ARGV) {
     while (<>) {
 	chomp;
-	push @data, [ split " ", $_, $opt_split_limit ];
+	my $d = { data => [ split " ", $_, $opt_split_limit ] };
+	push @data, $d;
     }
 }
 
 unless (@data) {
     @data =(
-	    [ 'A', 80 ],
-	    [ 'B', 20 ],
-	    [ 'C', 45 ],
-	    [ 'E', 60 ],
-	    [ 'D', 20 ],
+	    { data => [ 'A', 80 ] },
+	    { data => [ 'B', 20 ] },
+	    { data => [ 'C', 45 ] },
+	    { data => [ 'E', 60 ] },
+	    { data => [ 'D', 20 ] },
 	   );
 }
 
 if ($opt_sort == SORT_VALUE) {
     @data =
-      sort { $opt_sort_dir * ( $a->[$opt_col_data] <=> $b->[$opt_col_data] ) }
+      sort { $opt_sort_dir * ( $a->{data}[$opt_col_data] <=> $b->{data}[$opt_col_data] ) }
       @data;
 }
 elsif ($opt_sort == SORT_LABEL) {
     @data =
-      sort { -$opt_sort_dir * ( $a->[$opt_col_label] cmp $b->[$opt_col_label] ) }
+      sort { -$opt_sort_dir * ( $a->{data}[$opt_col_label] cmp $b->{data}[$opt_col_label] ) }
       @data;
 }
 
 if ($opt_combine_max && $opt_combine_max < @data) {
     my @rest = splice @data, $opt_combine_max-1;
-    my $c = [];
-    $c->[$opt_col_label] = sprintf $opt_combine_label, 0+@rest;
+    my $c = { data => [] };
+    $c->{data}[$opt_col_label] = sprintf $opt_combine_label, 0+@rest;
     for my $d (@rest) {
-	$c->[$opt_col_data] += $d->[$opt_col_data];
+	$c->{data}[$opt_col_data] += $d->{data}[$opt_col_data];
     }
     push @data, $c;
 }
@@ -156,7 +157,7 @@ my $height = $graph_height;
 
 my $data_sum = 0;
 for my $d (@data) {
-    $data_sum += $d->[$opt_col_data];
+    $data_sum += $d->{data}[$opt_col_data];
 }
 
 my $n = 0;
@@ -171,7 +172,7 @@ my $ry = $max_ry * 0.8;
 my $drx = $max_rx * 0.3;
 my $dry = $max_ry * 0.3;
 
-my($max_val) = sort { $b <=> $a } map { $_->[$opt_col_data] } @data;
+my($max_val) = sort { $b <=> $a } map { $_->{data}[$opt_col_data] } @data;
 
 my(@style, @pie, @legend);
 
@@ -301,8 +302,8 @@ $n = 0;
 for my $s (@data) {
     $n++;
 
-    my $value = $s->[$opt_col_data];
-    my $label = $s->[$opt_col_label];
+    my $value = $s->{data}[$opt_col_data];
+    my $label = $s->{data}[$opt_col_label];
 
     my $aw = PI * $value / $data_sum;
 
