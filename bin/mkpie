@@ -109,11 +109,23 @@ $opt_start_angle = 2 * PI * $opt_start_angle / 360;
 # end options
 
 my @data;
+my %custom_color;
+my $custom_color;
 
 if (@ARGV) {
     while (<>) {
 	chomp;
+	my $c;
+	if (s/#([[:xdigit:]]{2})([[:xdigit:]]{2})([[:xdigit:]]{2})(?::(\d*(?:\.\d+)?))?//) {
+	    $c = lc "$1$2$3";
+	    my $sw = 0+$4;
+	    $c .= ":$sw" if $sw;
+	    my $cdef = { r => hex($1), g => hex($2), b => hex($3),
+			 sw => $sw, _n => ++$custom_color, _d => 1 };
+	    $custom_color{$c} ||= $cdef;
+	}
 	my $d = { data => [ split " ", $_, $opt_split_limit ] };
+	$d->{color} = $c if $c;
 	push @data, $d;
     }
 }
@@ -202,11 +214,27 @@ text.value {
 }
 };
 
+for my $cc (values %custom_color) {
+    push @style,
+      sprintf(qq{
+.custom%d {
+  fill: #%02x%02x%02x;%s
+}
+},
+	      $cc->{_n},
+	      $cc->{r},
+	      $cc->{g},
+	      $cc->{b},
+	      $cc->{sw} ? sprintf "\n  stroke-width: %g;", 2*$cc->{sw} : "",
+	     );
+}
+
 my @colors;
 my $cnum = 0;
 while (<DATA>) {
     while (m/#([[:xdigit:]]{2})([[:xdigit:]]{2})([[:xdigit:]]{2})/g) {
-	push @colors, { r => hex($1), g => hex($2), b => hex($3), _n => $cnum++, _d => 1 };
+	next if $custom_color{lc "$1$2$3"};
+	push @colors, { r => hex($1), g => hex($2), b => hex($3), _n => ++$cnum, _d => 1 };
     }
 }
 
@@ -337,15 +365,21 @@ for my $s (@data) {
 	$value = sprintf "%d%%", $value/$data_sum * 100;
     }
 
+    my $class = sprintf "series%d", $n;
+    if ($s->{color}) {
+	my $cn = $custom_color{$s->{color}}{_n};
+	$class = sprintf "custom%d", $cn;
+    }
+
     push(@legend,
-	 sprintf(qq{<rect id="legend-area%d" class="legend-box series%d" transform="scale(1,-1)" x="%.2f" y="%.2f" width="%d" height="%s" />},
-		 $n, $n,
+	 sprintf(qq{<rect id="legend-area%d" class="legend-box %s" transform="scale(1,-1)" x="%.2f" y="%.2f" width="%d" height="%s" />},
+		 $n, $class,
 		 $legend_padding, -($legend_offset + $n*$legend_lh),
 		 $legend_box_size, $legend_box_size,
 		),
 	 sprintf(qq{<text id="legend-text%d" class="legend" x="%.2f" y="%.2f">%s</text>},
 		 $n,
-		 $legend_padding*2 + ($legend_lh - $legend_box_size), $legend_offset + $n*$legend_lh - 1, #$opt_stroke_width,
+		 $legend_padding*2 + ($legend_lh - $legend_box_size), $legend_offset + $n*$legend_lh - 1,
 		 $label),
 	);
 
